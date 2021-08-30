@@ -1,3 +1,4 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # Optimisation of BMP Placements in GHMC Area
 
 Code for optimising placement of Best Management Practices (BMPs) in the Greater Hyderabad Municipal Corporation (GHMC) area, Telangana, India. This repo contains:

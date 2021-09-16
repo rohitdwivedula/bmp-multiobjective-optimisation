@@ -17,16 +17,18 @@ from pymoo.factory import get_sampling
 from pymoo.factory import get_termination
 from pymoo.factory import get_reference_directions
 from pymoo.factory import get_decision_making
-from pymoo.model.problem import Problem
-from pymoo.algorithms.so_genetic_algorithm import GA
+from pymoo.core.problem import Problem
+from pymoo.algorithms.soo.nonconvex.ga import GA
 
 parser = argparse.ArgumentParser(description='Run an optimization algorithm on the GHMC BMP data.')
 
 # basic arguments
 parser.add_argument('model', help='Name of the model to run it on. Must be GA')
-parser.add_argument('-d', '--data', type=str, default='historic', help='Run optimisation on historic data or climate change data (future). Must be one of "historic" or "future"')
+parser.add_argument('-d', '--data', type=str, default='historic', help='Run optimisation on "historic" data. Must be "historic"')
 parser.add_argument('-p', '--population', type=int, default=100, help='Number of members in the population of the EA')
-parser.add_argument('-g', '--generations', type=int, default=-1, help='Number of generations to run the EA.')
+parser.add_argument('-g', '--generations', type=int, default=-1, help='Number of generations to run the EA. If this is less than zero, default termination used')
+parser.add_argument('-s', '--seed', type=int, default=1, help='Seed for reproducibility')
+
 
 # optimization algorithms and membership functions
 parser.add_argument('-m', '--membership', type=str, default='nonlinear', help='Membership function: nonlinear, exponential, hyperbolic.')
@@ -47,7 +49,7 @@ if args.model not in ["GA"]:
     print("Optimization Model", args.model, "is not defined.")
     exit(-1)
 
-if args.data not in ["historic", "future"]:
+if args.data not in ["historic"]:
     print("Dataset", args.data, "does not exist.")
     exit(-1)
 
@@ -56,12 +58,15 @@ runtimes = dict()
 if args.data == "historic":
 	# Read nonrooftop data
 	start_time = time.time()
-	nonrooftop = gpd.read_file("./data/nonrooftop/rohit_newnonroof.shp")
+	nonrooftop = gpd.read_file("../data/historic/historic_nonrooftop.shp")
 	nonrooftop["Runredvol"] /= 1000
 	nonrooftop["cost_mult"] = nonrooftop["Depth"] * 3500
 	nonrooftop["runred_mult"] = (nonrooftop["Runredeff"] * nonrooftop["Rainfall"])/1000
 	nonrooftop["pollutant_mult"] = nonrooftop["pollutant_"] * nonrooftop["peff"] * nonrooftop["runoff"]
-	nonrooftop = nonrooftop[["BMP", "Cost", "Runredvol", "Pollutant", "Shape_Area", "cost_mult", "runred_mult", "pollutant_mult", "geometry", "District", "WARDNO", "WARDNAME", "Zone_No"]]
+	nonrooftop = nonrooftop[
+        ["BMP", "Cost", "Runredvol", "Pollutant", "Shape_Area", 
+        "cost_mult", "runred_mult", "pollutant_mult", "geometry"]
+    ]
 	end_time = time.time()
 	print("Nonrooftop BMPs:", nonrooftop.shape)
 	print("Took %.2f s."%(end_time - start_time))
@@ -69,63 +74,23 @@ if args.data == "historic":
 
 	# Read rooftop data
 	start_time = time.time()
-	rooftop = gpd.read_file("./data/rooftop/rooftophar_GHMC.shp")
+	rooftop = gpd.read_file("../data/historic/historic_rooftop.shp")
 	rooftop["cost_mult"] = ((6 * 3010)/100)
 	rooftop["runred_mult"] = rooftop["Rainfall"] * (0.7)/1000
 	rooftop["pollutant_mult"] = rooftop["Runoff"] * rooftop["peff"] * 14
-	rooftop = rooftop[['BMP_type', 'cost', 'volumehar', 'pollloadre', 'Shape_area', "cost_mult", "runred_mult", "pollutant_mult", 'geometry']]
-	to_rename = {
-	    "BMP_type": "BMP", 
-	    "Shape_area": "Shape_Area", 
-	    "pollloadre":"Pollutant", 
-	    "volumehar":"Runredvol",
-	    "cost": "Cost"
-	}
-	rooftop.rename(columns = to_rename, inplace=True)
+	rooftop = rooftop[
+        ["BMP", "Cost", "Runredvol", "Pollutant", "Shape_Area", 
+         "cost_mult", "runred_mult", "pollutant_mult", "geometry"]
+    ]
 	end_time = time.time()
 	print("Read rooftop. Took %.2f s."%(end_time - start_time))
 	runtimes["read_rooftop"] = end_time - start_time
 
-else: ## future scenario
-	# Read nonrooftop data
-	start_time = time.time()
-	nonrooftop = gpd.read_file("./data/climate_change/RCP2point6nonrooftop.shp")
-	nonrooftop["Pollloadre"] = nonrooftop["pollutant_"] * nonrooftop["peff"] * nonrooftop["runoff"] * nonrooftop["Shape_Area"]
-	nonrooftop["runred_mult"] = (nonrooftop["Runredeff"] * nonrooftop["Rainfall"])/1000
-	nonrooftop["pollutant_mult"] = nonrooftop["pollutant_"] * nonrooftop["peff"] * nonrooftop["runoff"]
-	nonrooftop["cost_mult"] = nonrooftop["Depth"] * 3500
-	nonrooftop = nonrooftop[["BMP", "Cost", "Volumehar", "Pollloadre", "Shape_Area", "cost_mult", "runred_mult", "pollutant_mult", "geometry", "District", "WARDNO", "WARDNAME", "Zone_No"]]
-	to_rename = {
-	    "Volumehar": "Runredvol", 
-	    "Pollloadre": "Pollutant"
-	}
-	nonrooftop.rename(columns = to_rename, inplace=True)
-	end_time = time.time()
-	print("Nonrooftop BMPs:", nonrooftop.shape)
-	print("Took %.2f s."%(end_time - start_time))
-	runtimes["read_nonrooftop"] = end_time - start_time
-
-	# Read rooftop data
-	start_time = time.time()
-	rooftop = gpd.read_file("./data/climate_change/RCP2point6rooftop.shp")
-	rooftop["cost_mult"] = ((6 * 3010)/100)
-	rooftop["runred_mult"] = rooftop["Rainfall"] * (0.7)/1000
-	rooftop["pollutant_mult"] = rooftop["Runoff"] * rooftop["peff"] * 14
-	rooftop = rooftop[['BMP_type', 'cost', 'volumehar', 'pollloadre', 'Shape_area', "cost_mult", "runred_mult", "pollutant_mult", 'geometry']]
-	to_rename = {
-	    "BMP_type": "BMP", 
-	    "Shape_area": "Shape_Area", 
-	    "pollloadre":"Pollutant", 
-	    "volumehar":"Runredvol",
-	    "cost": "Cost"
-	}
-	rooftop.rename(columns = to_rename, inplace=True)
-	end_time = time.time()
-	print("Read rooftop. Took %.2f s."%(end_time - start_time))
-	runtimes["read_rooftop"] = end_time - start_time
+else:
+    print("Sample dataset available only for historic event")
+    exit(-1)
 
 # bucketing data
-
 bucketed_data = nonrooftop[["BMP", "cost_mult", "runred_mult", "pollutant_mult", "Cost", "Runredvol", "Pollutant", "Shape_Area"]].groupby(["BMP", "cost_mult", "runred_mult", "pollutant_mult"]).agg('sum').reset_index()
 bucketed_data = bucketed_data.sort_values(by = "BMP").reset_index().drop("index", axis=1)
 print(bucketed_data["BMP"].value_counts())
@@ -204,9 +169,6 @@ print("Evaluated all constraints")
 print("Took %.2f s."%(end_time - start_time))
 runtimes["constraint_evaluation"] = end_time - start_time
 
-rooftop = None
-nonrooftop = None
-
 def nonlinear(z, zl, zu, beta):
     tmp1 = (z - zl)/(zu-zl)
     membership = tmp1 ** beta
@@ -226,19 +188,27 @@ def exponential(z, zl, zu, s):
     membership = numerators/denominator
     return membership
 
-# define upper and lower limits of objectives
-ZL_RUNRED = 0
-ZL_POLLUTANT = 0
-ZL_COST = -34972246294.154465 # INR
+'''
+    Define upper and lower limits of objectives. These will be 
+    calculated automatically for the dataset. In the paper, the
+    values of these for the entire dataset were:
+
+        ZL_COST = -34972246294.154465 INR
+        ZU_RUNRED = 15468781.81909658 m^3
+        ZU_POLLUTANT = 110930541997.94527 mg
+''' 
+ZL_COST = -1 * (np.sum(nonrooftop["Cost"]) + np.sum(rooftop["Cost"])) # in Indian rupees (INR).
 ZU_COST = 0
 
-if args.data == "historic":
-    ZU_RUNRED = 15468781.81909658 # m^3
-    ZU_POLLUTANT = 110930541997.94527 # milligrams
+ZL_RUNRED = 0
+ZU_RUNRED = np.sum(nonrooftop["Runredvol"]) + np.sum(rooftop["Runredvol"])
 
-else: # future
-    ZU_RUNRED = 113369562.14718308 # m^3
-    ZU_POLLUTANT = 339420102539.6832 # mg
+ZL_POLLUTANT = 0
+ZU_POLLUTANT = np.sum(nonrooftop["Pollutant"]) + np.sum(rooftop["Pollutant"]) 
+
+
+rooftop = None
+nonrooftop = None
 
 # define BMP problem
 class BMPProblem(Problem):
@@ -246,9 +216,19 @@ class BMPProblem(Problem):
                 membership_function = "exponential", 
                 beta = [1, 1, 1], 
                 s = [1, 1, 1],
-                pollutant_lower_bound = 25000000000,
-                runred_lower_bound = 3500000
+                pollutant_lower_bound = 25,
+                runred_lower_bound = 35
         ):
+        '''
+            1. pollutant_lower_bound: refers to the minimum amount of pollutant that must be removed by
+                                      a BMP configuration (in mg). In the paper, we used this value to be
+                                      pollutant_lower_bound = 25000000000 mg (or 25 tonnes)
+
+            2. runred_lower_bound:    refers to the minimum amount of runoff that must be reduced by the 
+                                      BMP configuration (in m^3). In the paper, we used this value to be
+                                      runred_lower_bound = 3500000 m^3.
+
+        '''
         super().__init__(n_var=bucketed_data.shape[0] + bucketed_rooftop.shape[0],
                          n_obj=1,
                          n_constr = 122,
@@ -344,6 +324,9 @@ numTrials = len(trialParams)
 print("Performing a total of", numTrials, "using parameter_options", parameter_options)
 
 # for saving results
+if not os.path.isdir("results/"):
+    os.mkdir("results")
+
 previous_runs = list(filter(lambda x: os.path.isdir("results/"+x), os.listdir("results")))
 
 try:
@@ -369,7 +352,7 @@ if args.membership == "hyperbolic":
     )
 elif args.membership == "exponential":
     physical_interpretation = pd.DataFrame(
-        columns = [
+        colugenerationsmns = [
             's1', 's2', 's3', 'lambda', 'Runred', 'Cost', 'Pollutant', 
             'Infiltration trench', 'Vegetated_filterstrip', 'Wet_pond', 
             'Bioretention', 'Constructed_wetland', 'Porous_Pavement', 
@@ -412,13 +395,23 @@ for i in range(numTrials):
         print("Model", args.model, "not found")
         exit(0)
 
-    res = minimize(
-        bmp_problem,
-        algorithm,
-        seed = 1,
-        save_history=True,
-        verbose=True
-    )
+    if args.generations > 0:
+        res = minimize(
+            bmp_problem,
+            algorithm,
+            ('n_gen', args.generations),
+            seed=args.seed,
+            save_history=True,
+            verbose=True
+        )
+    else:
+        res = minimize(
+            bmp_problem,
+            algorithm,
+            seed=args.seed,
+            save_history=True,
+            verbose=True
+        )
     end_time = time.time()
     print("Optimization complete for run #", i, "with params =", trialParams[i])
     print("Took %.2f s."%(end_time - start_time))

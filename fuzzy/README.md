@@ -4,7 +4,7 @@ To run the code (on a dummy dataset located in`../data/historic`), use this comm
 
 `python3 fuzzy_optimise.py GA`
 
-This command will run the optimistaion process with `nonlinear` membership function and save the output of it to the `results/` directory. To run the code with other parameters, or with other membership functions, you can use command line options that can be viewed using: 
+This command will run the optimisation process with `nonlinear` membership function and save the output of it to the `results/` directory. To run the code with other parameters, or with other membership functions, you can use command line options that can be viewed using: 
 
 `python3 fuzzy_optimise.py --help`
 

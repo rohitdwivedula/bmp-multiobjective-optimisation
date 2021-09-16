@@ -6,7 +6,7 @@ Code for optimising placement of Best Management Practices (BMPs) in the Greater
 1. code for running NSGA-III and C-TAEA multiobjective optimisation algorithms (see folder `multiobjective`) [1].
 2. code for running fuzzy optimisation with single objective genetic algorithms and three different membership functions (see folder `fuzzy`).
 
-# Setup
+## Setup
 
 It is recommended to run all code within a Python virtual environment. To create an environment and install dependencies:
 
@@ -16,10 +16,10 @@ It is recommended to run all code within a Python virtual environment. To create
 
 Your environment is now ready to run the code!
 
-# Data
+## Data
 Our work uses data from the Greater Hyderabad Municipal Corporation (GHMC) area to perform this optimization. Data is formatted/stored as `.shp` files that can be opened using almost any `GIS` software or in Python using the `geopandas` library. The `data` directory contains sample `.shp` and other files as a representation of the data format. Please note that these files contain **only** the data format - not the actual complete dataset itself.
 
-# References
+## References
 
 If you found this repository useful in your research, please consider citing:
 

@@ -4,7 +4,7 @@
 Code for optimising placement of Best Management Practices (BMPs) in the Greater Hyderabad Municipal Corporation (GHMC) area, Telangana, India. This repo contains:
 
 1. code for running NSGA-III and C-TAEA multiobjective optimisation algorithms (see folder `multiobjective`) [1].
-2. code for running fuzzy optimisation with single objective genetic algorithms and three different membership functions (see folder `fuzzy`).
+2. code for running fuzzy optimisation with single objective genetic algorithms and three different membership functions (see folder `fuzzy`) [2].
 
 ## Setup
 

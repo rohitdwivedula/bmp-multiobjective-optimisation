@@ -24,3 +24,5 @@ Our work uses data from the Greater Hyderabad Municipal Corporation (GHMC) area 
 If you found this repository useful in your research, please consider citing:
 
 [1] Rohit Dwivedula, R. Madhuri, K. Srinivasa Raju, A. Vasan; Multiobjective optimisation and cluster analysis in placement of best management practices in an urban flooding scenario. Water Sci Technol 15 August 2021; 84 (4): 966–984. doi: https://doi.org/10.2166/wst.2021.283
+
+[2] Dwivedula, R., Madhuri, R., Srinivasa Raju, K., Vasan, A. (2023). Fuzzy Optimization Framework for Facilitating Best Management Practices in the Context of Urban Floods. In: Timbadiya, P.V., Patel, P.L., Singh, V.P., Mirajkar, A.B. (eds) Geospatial and Soft Computing Techniques. HYDRO 2021. Lecture Notes in Civil Engineering, vol 339. Springer, Singapore. https://doi.org/10.1007/978-981-99-1901-7_42
